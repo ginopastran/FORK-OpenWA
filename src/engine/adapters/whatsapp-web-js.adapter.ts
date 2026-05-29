@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { Client, LocalAuth, MessageMedia } from 'whatsapp-web.js';
+import { Client, LocalAuth, MessageMedia, Message } from 'whatsapp-web.js';
 import * as qrcode from 'qrcode';
 import * as path from 'path';
 import {
@@ -143,16 +143,21 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     this.client.on('message', async msg => {
       try {
+        if (msg.fromMe) return;
+
+        const resolved = await this.resolveIncomingIdentity(msg);
         const incomingMessage: IncomingMessage = {
           id: msg.id._serialized,
-          from: msg.from,
+          from: resolved.from,
           to: msg.to,
-          chatId: msg.from,
+          chatId: resolved.chatId,
+          phoneNumber: resolved.phoneNumber,
+          author: msg.author,
           body: msg.body,
           type: msg.type,
           timestamp: msg.timestamp,
-          fromMe: msg.fromMe,
-          isGroup: msg.from.endsWith('@g.us'),
+          fromMe: false,
+          isGroup: resolved.isGroup,
         };
 
         // Handle media
@@ -209,6 +214,80 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
     this.status = status;
     this.callbacks.onStateChanged?.(status);
     this.emit('stateChanged', status);
+  }
+
+  private async resolveIncomingIdentity(msg: Message): Promise<{
+    from: string;
+    chatId: string;
+    phoneNumber?: string;
+    isGroup: boolean;
+  }> {
+    const rawFrom = msg.from;
+    const isGroup = rawFrom.endsWith('@g.us');
+    let chatId = rawFrom;
+    let from = rawFrom;
+    let phoneNumber: string | undefined;
+
+    const pickPhoneJid = (jid?: string | null): string | undefined => {
+      if (!jid?.endsWith('@c.us')) return undefined;
+      return jid;
+    };
+
+    try {
+      const chat = await msg.getChat();
+      const chatJid = chat?.id?._serialized;
+      if (chatJid) {
+        chatId = chatJid;
+        if (!isGroup && pickPhoneJid(chatJid)) {
+          from = chatJid;
+          phoneNumber = chatJid.replace(/@c\.us$/i, '');
+        }
+      }
+    } catch (error) {
+      this.logger.debug('Could not resolve chat id for incoming message', String(error));
+    }
+
+    if (!phoneNumber && (rawFrom.includes('@lid') || chatId.includes('@lid'))) {
+      try {
+        const candidates = [rawFrom, msg.author, chatId].filter(Boolean) as string[];
+        const mapping = await this.client!.getContactLidAndPhone(candidates);
+        const match = mapping.find(entry => entry.pn?.endsWith('@c.us'));
+        if (match?.pn) {
+          from = match.pn;
+          chatId = match.pn;
+          phoneNumber = match.pn.replace(/@c\.us$/i, '');
+        }
+      } catch (error) {
+        this.logger.debug('Could not resolve lid mapping for incoming message', String(error));
+      }
+    }
+
+    if (!phoneNumber) {
+      try {
+        const contact = await msg.getContact();
+        const contactNumber = contact?.number?.replace(/\D/g, '');
+        if (contactNumber) {
+          phoneNumber = contactNumber;
+          from = `${contactNumber}@c.us`;
+          if (!isGroup) chatId = from;
+        } else {
+          const contactJid = contact?.id?._serialized;
+          if (pickPhoneJid(contactJid)) {
+            from = contactJid;
+            chatId = contactJid;
+            phoneNumber = contactJid.replace(/@c\.us$/i, '');
+          }
+        }
+      } catch (error) {
+        this.logger.debug('Could not resolve contact for incoming message', String(error));
+      }
+    }
+
+    if (!phoneNumber && pickPhoneJid(rawFrom)) {
+      phoneNumber = rawFrom.replace(/@c\.us$/i, '');
+    }
+
+    return { from, chatId, phoneNumber, isGroup };
   }
 
   async disconnect(): Promise<void> {

@@ -486,8 +486,15 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
       status,
       action: 'status_update',
     });
-    // Emit real-time event to connected WebSocket clients
     this.eventsGateway.emitSessionStatus(id, status);
+
+    const session = await this.sessionRepository.findOne({ where: { id } });
+    void this.webhookService.dispatch(id, 'session.status', {
+      status,
+      state: status,
+      phoneNumber: session?.phone ?? undefined,
+      phone: session?.phone ?? undefined,
+    });
   }
 
   /**

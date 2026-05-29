@@ -27,6 +27,8 @@ export interface IncomingMessage {
   from: string;
   to: string;
   chatId: string;
+  phoneNumber?: string;
+  author?: string;
   body: string;
   type: string;
   timestamp: number;
