@@ -16,7 +16,7 @@ ENV NPM_CONFIG_ENGINE_STRICT=false
 
 COPY . .
 
-RUN npm install --ignore-scripts --no-audit --no-fund
+RUN npm install --ignore-scripts --no-audit --no-fund && npm rebuild sqlite3
 
 RUN npm run build
 
