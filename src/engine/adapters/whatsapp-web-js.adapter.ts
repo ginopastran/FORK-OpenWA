@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import { Client, LocalAuth, MessageMedia, Message } from 'whatsapp-web.js';
 import * as qrcode from 'qrcode';
+import * as fs from 'fs';
 import * as path from 'path';
 import {
   IWhatsAppEngine,
@@ -65,11 +66,36 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
 
   private readonly logger = createLogger('WhatsAppWebJsAdapter');
 
+  private cleanStaleChromiumLocks(rootDir: string): void {
+    const lockNames = new Set(['SingletonLock', 'SingletonCookie', 'SingletonSocket', 'lockfile']);
+    const walk = (dir: string): void => {
+      if (!fs.existsSync(dir)) return;
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(fullPath);
+          continue;
+        }
+        if (!lockNames.has(entry.name)) continue;
+        try {
+          fs.unlinkSync(fullPath);
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+    walk(path.resolve(rootDir));
+  }
+
   async initialize(callbacks: EngineEventCallbacks): Promise<void> {
     this.callbacks = callbacks;
     this.setStatus(EngineStatus.INITIALIZING);
 
     try {
+      this.cleanStaleChromiumLocks(this.config.sessionDataPath);
+      this.cleanStaleChromiumLocks(
+        path.join(this.config.sessionDataPath, `session-${this.config.sessionId}`),
+      );
       // Build puppeteer args, including proxy if configured
       const puppeteerArgs = this.config.puppeteer?.args || [
         '--no-sandbox',
