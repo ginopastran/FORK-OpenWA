@@ -26,7 +26,9 @@ RUN npm prune --omit=dev
 FROM node:22-slim AS production
 
 RUN apt-get update && apt-get install -y \
-    chromium \
+    wget \
+    gnupg \
+    ca-certificates \
     fonts-liberation \
     libappindicator3-1 \
     libasound2 \
@@ -46,9 +48,12 @@ RUN apt-get update && apt-get install -y \
     xdg-utils \
     dbus \
     dumb-init \
+    && wget -q -O /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    && apt-get install -y /tmp/google-chrome.deb \
+    && rm -f /tmp/google-chrome.deb \
     && rm -rf /var/lib/apt/lists/*
 
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_HEADLESS=true
 ENV PUPPETEER_ARGS=--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu,--disable-software-rasterizer,--disable-extensions,--disable-background-networking,--disable-sync,--mute-audio,--no-first-run
