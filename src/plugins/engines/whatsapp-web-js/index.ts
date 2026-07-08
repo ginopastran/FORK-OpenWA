@@ -43,9 +43,9 @@ export class WhatsAppWebJsPlugin implements IEnginePlugin {
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--no-zygote',
-      '--single-process',
       '--disable-gpu',
       '--disable-software-rasterizer',
+      '--headless=new',
     ];
     const executablePath =
       (this.context?.config.executablePath as string | undefined)

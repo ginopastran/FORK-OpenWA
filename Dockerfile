@@ -44,14 +44,14 @@ RUN apt-get update && apt-get install -y \
     libxdamage1 \
     libxrandr2 \
     xdg-utils \
+    dbus \
     dumb-init \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 ENV PUPPETEER_HEADLESS=true
-ENV PUPPETEER_ARGS=--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu,--no-zygote,--single-process,--disable-software-rasterizer
+ENV PUPPETEER_ARGS=--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu,--no-zygote,--disable-software-rasterizer,--disable-extensions,--disable-background-networking,--disable-sync,--mute-audio,--no-first-run,--headless=new
 ENV NPM_CONFIG_ENGINE_STRICT=false
 
 RUN groupadd -r openwa && useradd -r -g openwa openwa
@@ -61,8 +61,10 @@ WORKDIR /app
 COPY --from=builder /app/package.json /app/package-lock.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-RUN mkdir -p ./data/sessions ./data/media && \
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \
+    mkdir -p ./data/sessions ./data/media && \
     chown -R openwa:openwa /app
 
 EXPOSE 2785
@@ -71,4 +73,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD node -e "require('http').get('http://localhost:2785/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/main"]
+CMD ["/usr/local/bin/docker-entrypoint.sh"]

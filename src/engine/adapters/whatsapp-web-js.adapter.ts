@@ -104,9 +104,9 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--single-process',
         '--disable-gpu',
         '--disable-software-rasterizer',
+        '--headless=new',
       ];
 
       const executablePath =
