@@ -51,7 +51,7 @@ RUN apt-get update && apt-get install -y \
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_HEADLESS=true
-ENV PUPPETEER_ARGS=--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu,--no-zygote,--disable-software-rasterizer,--disable-extensions,--disable-background-networking,--disable-sync,--mute-audio,--no-first-run,--headless=new
+ENV PUPPETEER_ARGS=--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu,--disable-software-rasterizer,--disable-extensions,--disable-background-networking,--disable-sync,--mute-audio,--no-first-run
 ENV NPM_CONFIG_ENGINE_STRICT=false
 
 RUN groupadd -r openwa && useradd -r -g openwa openwa

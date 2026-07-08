@@ -52,7 +52,7 @@ export default () => ({
       headless: process.env.PUPPETEER_HEADLESS !== 'false',
       args: (
         process.env.PUPPETEER_ARGS
-        || '--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu,--no-zygote,--disable-software-rasterizer,--headless=new'
+        || '--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu,--disable-software-rasterizer'
       ).split(','),
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
     },
