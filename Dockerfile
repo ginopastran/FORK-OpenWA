@@ -13,11 +13,11 @@ RUN apt-get update && apt-get install -y \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package files
-COPY package*.json ./
+# Copy package manifests explicitly (Render/buildkit may not include lockfile via glob)
+COPY package.json package-lock.json ./
 
 # Install all dependencies (including devDependencies for build)
-RUN npm ci --ignore-scripts
+RUN test -f package-lock.json && npm ci --ignore-scripts
 
 # Copy source code
 COPY . .
@@ -60,11 +60,11 @@ RUN groupadd -r openwa && useradd -r -g openwa openwa
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package manifests explicitly (Render/buildkit may not include lockfile via glob)
+COPY package.json package-lock.json ./
 
 # Install production dependencies only
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+RUN test -f package-lock.json && npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
