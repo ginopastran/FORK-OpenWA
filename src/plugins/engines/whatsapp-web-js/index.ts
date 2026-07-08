@@ -11,6 +11,7 @@ export interface WhatsAppWebJsConfig {
   sessionDataPath?: string;
   headless?: boolean;
   puppeteerArgs?: string[];
+  executablePath?: string;
 }
 
 export class WhatsAppWebJsPlugin implements IEnginePlugin {
@@ -40,7 +41,15 @@ export class WhatsAppWebJsPlugin implements IEnginePlugin {
     const puppeteerArgs = (this.context?.config.puppeteerArgs as string[]) ?? [
       '--no-sandbox',
       '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--no-zygote',
+      '--single-process',
+      '--disable-gpu',
+      '--disable-software-rasterizer',
     ];
+    const executablePath =
+      (this.context?.config.executablePath as string | undefined)
+      ?? process.env.PUPPETEER_EXECUTABLE_PATH;
 
     const proxyUrl = config.proxyUrl as string | undefined;
     const proxyType = config.proxyType as 'http' | 'https' | 'socks4' | 'socks5' | undefined;
@@ -51,6 +60,7 @@ export class WhatsAppWebJsPlugin implements IEnginePlugin {
       puppeteer: {
         headless,
         args: puppeteerArgs,
+        executablePath,
       },
       proxy: proxyUrl
         ? {

@@ -42,6 +42,7 @@ export interface WhatsAppWebJsConfig {
   puppeteer?: {
     headless?: boolean;
     args?: string[];
+    executablePath?: string;
   };
   // Phase 3: Proxy per session
   proxy?: {
@@ -77,10 +78,16 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
+        '--single-process',
         '--disable-gpu',
+        '--disable-software-rasterizer',
       ];
 
-      // Add proxy configuration if provided
+      const executablePath =
+        this.config.puppeteer?.executablePath?.trim()
+        || process.env.PUPPETEER_EXECUTABLE_PATH?.trim()
+        || undefined;
+
       if (this.config.proxy) {
         puppeteerArgs.push(`--proxy-server=${this.config.proxy.url}`);
         this.logger.log(
@@ -96,6 +103,7 @@ export class WhatsAppWebJsAdapter extends EventEmitter implements IWhatsAppEngin
         puppeteer: {
           headless: this.config.puppeteer?.headless ?? true,
           args: puppeteerArgs,
+          ...(executablePath ? { executablePath } : {}),
         },
       });
 
